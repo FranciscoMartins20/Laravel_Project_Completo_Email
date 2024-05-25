@@ -50,14 +50,33 @@ export default function Tasks() {
             });
     };
 
+    const sendCompletionEmail = (task) => {
+        axiosClient.post(`/tasks/${task.id}/send-email`)
+            .then(() => {
+                console.log("Email de finalização enviado.");
+            })
+            .catch(err => {
+                console.error("Falha ao enviar o email:", err);
+            });
+    };
+
     const handleDragEnd = (result) => {
         if (!result.destination) return;
 
         const updatedTasks = Array.from(tasks);
         const [movedTask] = updatedTasks.splice(result.source.index, 1);
-        movedTask.status = result.destination.droppableId;
-        updatedTasks.splice(result.destination.index, 0, movedTask);
 
+        if (result.destination.droppableId === 'Finalizado' && movedTask.status !== 'Finalizado') {
+            if (!window.confirm('Tem a certeza que deseja finalizar esta tarefa?')) {
+                return;
+            }
+            movedTask.status = result.destination.droppableId;
+            sendCompletionEmail(movedTask);
+        } else {
+            movedTask.status = result.destination.droppableId;
+        }
+
+        updatedTasks.splice(result.destination.index, 0, movedTask);
         setTasks(updatedTasks);
 
         axiosClient.put(`/tasks/${movedTask.id}`, movedTask)
